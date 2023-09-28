@@ -1,48 +1,43 @@
+import time
 import mil as MIL
-
+import numpy as np
 
 def main():
 
     # Allocate defaults.
     MilApplication = MIL.MappAlloc("M_DEFAULT", MIL.M_DEFAULT)
     MilSystem = MIL.MsysAlloc(MIL.M_DEFAULT, MIL.M_SYSTEM_DEFAULT, MIL.M_DEFAULT, MIL.M_DEFAULT)
+    MilDisplay = MIL.MdispAlloc(MilSystem, MIL.M_DEFAULT, "M_DEFAULT", MIL.M_WINDOWED)
+    MilDigitizer = MIL.MdigAlloc(MilSystem, MIL.M_DEFAULT, "M_DEFAULT", MIL.M_DEFAULT)
+    MilContainerDisp = MIL.MbufAllocContainer(MilSystem, MIL.M_PROC + MIL.M_DISP + MIL.M_GRAB, MIL.M_DEFAULT)
+    
+    ###############################
+    # Set sensor parameters
+    ###############################
 
-    # alloca two displays
-    MilDisplay0 = MIL.MdispAlloc(MilSystem, MIL.M_DEFAULT, 'Display0', MIL.M_DEFAULT, MIL.M_NULL)
-    MilDigitizer0 = MIL.MdigAlloc(MilSystem, MIL.M_DEFAULT, "M_DEFAULT", MIL.M_DEFAULT)
-    MilImage0 = MIL.MbufAlloc2d(MilSystem, 
-                                MIL.MdigInquire(MilDigitizer0, MIL.M_SIZE_X, MIL.M_NULL), 
-                                MIL.MdigInquire(MilDigitizer0, MIL.M_SIZE_Y, MIL.M_NULL),
-                                8, MIL.M_IMAGE + MIL.M_GRAB, MIL.M_NULL)
+    # load default parameters
+    MIL.MdigControlFeature(MilDigitizer, MIL.M_FEATURE_VALUE, "UserSetDefault", MIL.M_TYPE_STRING, "Default")
+    MIL.MdigControlFeature(MilDigitizer, MIL.M_FEATURE_EXECUTE, "UserSetLoad", MIL.M_DEFAULT, MIL.M_NULL)
 
-    # Grab continuously.
-    MIL.MdigGrabContinuous(MilDigitizer0, MilImage0)
+    MIL.MdigControlFeature(MilDigitizer, MIL.M_FEATURE_VALUE, "ExposureAuto", MIL.M_TYPE_STRING, "Off")
+    MIL.MdigControlFeature(MilDigitizer, MIL.M_FEATURE_VALUE, "ExposureTime", MIL.M_TYPE_DOUBLE, np.array(2000.0))
 
-    # When a key is pressed, halt. 
-    print("\nDIGITIZER ACQUISITION:")
-    print("----------------------\n")
-    print("Continuous image grab in progress.")
-    print("Press <Enter> to stop.\n")
-    MIL.MosGetch()
+    ##############
 
-    # Stop continuous grab
-    MIL.MdigHalt(MilDigitizer0)
+    # Allocate an image buffer.
+    MilImage = MIL.MbufAllocColor(MilSystem, 3, 1024, 768, 8 + MIL.M_UNSIGNED, MIL.M_IMAGE + MIL.M_GRAB + MIL.M_DISP, MIL.M_NULL)
+ 
+    # # Display the image buffer.
+    # MIL.MdispSelect(MilDisplay, MilImage)
 
-    # Pause to show the result. 
-    print("Continuous grab stopped.\n")
-    print("Press <Enter> to do a single image grab.\n")
-    MIL.MosGetch()
+    for ind in range(10):
 
-    # Monoshot grab. 
-    MIL.MdigGrab(MilDigitizer0, MilImage0)
-
-    # Pause to show the result. 
-    print("Displaying the grabbed image.")
-    print("Press <Enter> to end.\n")
-    MIL.MosGetch()
-
-    # Free defaults.
-    MIL.MappFreeDefault(MilApplication, MilSystem, MilDisplay0, MilDigitizer0, MilImage0)
+        # start acquisition
+        MIL.MdigGrab(MilDigitizer, MilImage)
+        MIL.MbufExport(str(ind) + '.png', MIL.M_PNG, MilImage)
+    
+        # sleep 1 sec
+        time.sleep(1)
 
     return 0
 
